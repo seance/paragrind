@@ -6,21 +6,23 @@ import pb2.control._
 import cats._
 import cats.implicits._
 
-object Rules {
+class Rules[F[_]: Functor]()(
+  implicit
+  F1: BattleLogging[F],
+) {
+  import F1._
 
   val rng = new java.security.SecureRandom
 
   object d4 extends Die(rng, sides=4)
+
   object d20 extends Die(rng, sides=20)
 
-  def resolveRanged[F[_]: Functor](
+  def resolveRanged(
     round: Int,
     ranged: RangedAction,
     sourceState: NpcState,
     targetState: NpcState,
-  )(
-    implicit
-    F: BattleLogging[F],
   ): F[NpcState] = {
 
     val attacker = ranged.source.character
@@ -30,18 +32,18 @@ object Rules {
       if (ranged.isMarksman) attacker.skills.marksman
       else attacker.skills.throwing
 
-    val attackRoll = d20.maybeDisadvantage(isRangedDisadvantage(sourceState), attackModifiers)
+    val attackRoll = d20.guardDisadvantage(isRangedDisadvantage(sourceState), attackModifiers)
 
     val defenseModifiers = List(
       defender.skills.evasion,
       defender.gear.shield.map(_.shieldValue).getOrElse(0)
     ).sum
 
-    val defenseRoll = d20.maybeDisadvantage(isEvasionDisadvantage(targetState), defenseModifiers)
+    val defenseRoll = d20.guardDisadvantage(isEvasionDisadvantage(targetState), defenseModifiers)
 
     if (attackRoll.modified <= defenseRoll.modified) {
       val missLog = RangedMissLog(round, attacker, defender, attackRoll, defenseRoll)
-      F.tell(List(missLog)) as NpcState()
+      return tell(List(missLog)) as NpcState()
     }
 
     val weapon =
@@ -71,24 +73,21 @@ object Rules {
       multiplier, damage, penetrated, hitLocation, pain, wounds,
     )
 
-    F.tell(List(hitLog)) as NpcState(pain, wounds)
+    tell(List(hitLog)) as NpcState(pain, wounds)
   }
 
-  def resolveSkirmish[F[_]: Functor](
+  def resolveSkirmish(
     round: Int,
     skirmish: Skirmish,
     npcStates: Map[Npc, NpcState],
-  )(
-    implicit
-    F: BattleLogging[F],
   ): F[PhaseResolution] = {
 
     def attackRolls(group: Set[Npc]) = group.map { n =>
       val state = npcStates(n)
       n -> (if (isAbleToSkirmish(state)) {
-        d20.maybeDisadvantage(isMeleeDisadvantage(state), n.character.skills.melee)
+        d20.guardDisadvantage(isMeleeDisadvantage(state), n.character.skills.melee)
       } else {
-        d20.maybeDisadvantage(isEvasionDisadvantage(state), n.character.skills.evasion)
+        d20.guardDisadvantage(isEvasionDisadvantage(state), n.character.skills.evasion)
       })
     }.toMap
 
@@ -102,7 +101,7 @@ object Rules {
 
     if (pMaxMod.modified == aMaxMod.modified && pMaxMod.natural == aMaxMod.natural) {
       val missLog = SkirmishMissLog(round, pMaxNpc.character, aMaxNpc.character, pMaxMod, aMaxMod, EqualRolls)
-      return F.tell(List(missLog)) as PhaseResolution()
+      return tell(List(missLog)) as PhaseResolution()
     }
 
     val (attackerNpc, attackRoll, defenderNpc, defenseRoll) = () match {
@@ -114,7 +113,7 @@ object Rules {
 
     if (!isAbleToSkirmish(npcStates(attackerNpc))) {
       val missLog = SkirmishMissLog(round, pMaxNpc.character, aMaxNpc.character, pMaxMod, aMaxMod, DefensiveAttacker)
-      return F.tell(List(missLog)) as PhaseResolution()
+      return tell(List(missLog)) as PhaseResolution()
     }
 
     val attacker = attackerNpc.character
@@ -143,7 +142,7 @@ object Rules {
       multiplier, damage, penetrated, hitLocation, pain, wounds,
     )
 
-    F.tell(List(hitLog)) as PhaseResolution(Map(defenderNpc -> NpcState(pain, wounds)))
+    tell(List(hitLog)) as PhaseResolution(Map(defenderNpc -> NpcState(pain, wounds)))
   }
 
   def isAbleToSkirmish(state: NpcState): Boolean = {
@@ -206,6 +205,9 @@ object Rules {
       case _ => Set()
     }
   }
+}
+
+object Rules {
 
   def isBleeding(state: NpcState): Boolean = {
     state.wounds.contains(Bleeding)
@@ -225,17 +227,12 @@ object Rules {
   }
 
   def getNextRank(rank: Rank, battlefield: Battlefield, isProtagonist: Boolean): Option[Rank] = {
-    val rankIndex = battlefield.ranks.indexOf(rank)
-    if (rankIndex >= 0) {
-      battlefield.ranks.get(if (isProtagonist) rankIndex + 1 else rankIndex - 1)
-    } else {
-      None
-    }
+    battlefield.ranks.get(if (isProtagonist) rank.index + 1 else rank.index - 1)
   }
 
   def getEnemiesOnRank(rank: Rank, battle: Battle, state: BattleState, isProtagonist: Boolean): List[Npc] = {
     state.positions.filter {
-      case (npc, npcRank) => (npcRank eq rank) && (
+      case (npc, npcRank) => (npcRank.index == rank.index) && (
         if (isProtagonist) battle.antagonists.contains(npc)
         else battle.protagonists.contains(npc)
       )
@@ -249,19 +246,21 @@ object Rules {
         else battle.protagonists.contains(npc)
       )
     }
+    if (enemyPositions.isEmpty) {
+      return (
+        if (isProtagonist) battle.battlefield.ranks.last
+        else battle.battlefield.ranks.head
+      )
+    }
     if (isProtagonist) {
-      enemyPositions.minBy { case (_, rank) =>
-          battle.battlefield.ranks.indexOf(rank)
-      }._2
+      enemyPositions.minBy { case (_, rank) => rank.index }._2
     } else {
-      enemyPositions.maxBy { case (_, rank) =>
-        battle.battlefield.ranks.indexOf(rank)
-      }._2
+      enemyPositions.maxBy { case (_, rank) => rank.index }._2
     }
   }
 
   def isBeyondFront(rank: Rank, frontRank: Rank, battle: Battle, isProtagonist: Boolean): Boolean = {
-    if (isProtagonist) battle.battlefield.ranks.indexOf(rank) > battle.battlefield.ranks.indexOf(frontRank)
-    else battle.battlefield.ranks.indexOf(rank) < battle.battlefield.ranks.indexOf(frontRank)
+    if (isProtagonist) rank.index > frontRank.index
+    else rank.index < frontRank.index
   }
 }

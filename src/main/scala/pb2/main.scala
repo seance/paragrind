@@ -13,25 +13,34 @@ object Main extends App {
   import Armory.armors._
   import NpcControls._
 
-  val field = Battlefields.ranks(count=4)
-  val dfak = Character("Dfak", Stats(14, 8, 5), Skills(melee=9), Gear(broadsword, shield=Some(kite), armor=Some(hardenedLeather)))
-  val dimathor = Character("Dimathor", Stats(11, 6, 7), Skills(throwing=8, evasion=6), Gear(broadsword, Some(hatchet), shield=Some(heater), armor=Some(hardenedLeather)))
-  val goblin = Character("Goblin", Stats(), Skills(marksman=4), Gear(dagger, weaponMarksman=Some(shortbow), armor=Some(hardenedLeather)))
-  val hobgob = Character("Hobgoblin", Stats(), Skills(melee=5), Gear(broadsword, armor=Some(hardenedLeather)))
-  val orc = Character("Orc", Stats(), Skills(melee=2), Gear(greataxe, armor=Some(hardenedLeather)))
+  implicit def anyToOption[A](x: A): Option[A] = Some(x)
+
+  val battlefield = Battlefields.ranks(count=4)
+
+  val warrior = Character("Warrior", Stats(14, 8, 5), Skills(melee=9), Gear(broadsword, shield=kite, armor=hardenedLeather))
+  val paladin = Character("Paladin", Stats(14, 8, 6), Skills(melee=7), Gear(greatAxe, shield=heater, armor=hardenedLeather))
+  val rogue = Character("Rogue", Stats(11, 6, 7), Skills(throwing=8, evasion=6), Gear(broadsword, hatchet, shield=heater, armor=hardenedLeather))
+  val goblin = Character("Goblin", Stats(), Skills(marksman=4, evasion=4), Gear(dagger, weaponMarksman=shortbow, armor=hardenedLeather))
+  val hobgoblin = Character("Hobgoblin", Stats(), Skills(melee=5), Gear(broadsword, armor=hardenedLeather))
+  val orc = Character("Orc", Stats(), Skills(melee=2), Gear(greatAxe, armor=hardenedLeather))
+  val titan = Character("Titan", Stats(15, 10, 10), Skills(melee=10, evasion=8), Gear(heavyMaul, armor=plateMail))
 
   val battle = Battle(
-    field,
+    battlefield,
     List(
-      Npc(dfak, skirmisher),
-      Npc(dimathor, thrower),
+      Npc(warrior, skirmisher),
+      Npc(paladin, skirmisher),
+      Npc(rogue, thrower),
     ),
     List(
-      Npc(goblin, marksman),
-      Npc(hobgob, skirmisher),
-      Npc(orc, skirmisher),
+      //Npc(goblin, marksman),
+      //Npc(orc, skirmisher),
+      //Npc(hobgoblin, skirmisher),
+      Npc(titan, skirmisher),
     )
   )
 
-  Simulation.runBattles(battle, count=1)
+  val result = Simulation.simulate(battle, count=10)
+
+  println(Transcriber.transcribeSimulationResult(result))
 }

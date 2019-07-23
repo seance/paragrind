@@ -25,8 +25,7 @@ class SkirmisherControl extends NpcControl {
     val currentRankEnemy = firstNotIncapacitated(currentRankEnemies, state)
 
     lazy val skirmishCurrentRankEnemy = currentRankEnemy.map[Action] { target =>
-      if (isProtagonist) SkirmishAction(self, target)
-      else SkirmishAction(target, self)
+      SkirmishAction(self, target, isProtagonist)
     }
 
     lazy val moveToNextRank = {
@@ -72,8 +71,7 @@ class MarksmanControl extends NpcControl {
       val currentRankEnemy = firstNotIncapacitated(currentRankEnemies, state)
 
       meleeHigherThanEvasion.guard[Option] *> currentRankEnemy.map { target =>
-        if (isProtagonist) SkirmishAction(self, target)
-        else SkirmishAction(target, self)
+        SkirmishAction(self, target, isProtagonist)
       }
     }
 
@@ -106,8 +104,7 @@ class ThrowerControl extends NpcControl {
     lazy val skirmishCurrentRankEnemy = {
       val meleeHigherThanEvasion = self.character.skills.melee >= self.character.skills.evasion
       meleeHigherThanEvasion.guard[Option] *> currentRankEnemy.map { target =>
-        if (isProtagonist) SkirmishAction(self, target)
-        else SkirmishAction(target, self)
+        SkirmishAction(self, target, isProtagonist)
       }
     }
 
@@ -127,7 +124,7 @@ class CasterControl extends NpcControl {
 }
 
 sealed trait Action
-case class SkirmishAction(protagonist: Npc, antagonist: Npc) extends Action
+case class SkirmishAction(source: Npc, target: Npc, isProtagonist: Boolean) extends Action
 case class RangedAction(source: Npc, target: Npc, isMarksman: Boolean) extends Action
 case class CastAction(source: Npc, cast: Cast) extends Action
 case class MoveAction(npc: Npc, from: Rank, to: Rank, isEager: Boolean) extends Action

@@ -38,6 +38,11 @@ case class RangedMissLog(
 
 sealed trait SkirmishLog extends ResolutionLog
 
+case class SkirmishesLog(
+  round: Int,
+  skirmishes: List[Skirmish]
+) extends SkirmishLog
+
 case class SkirmishHitLog(
   round: Int,
   attacker: Character,

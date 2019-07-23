@@ -13,7 +13,8 @@ object Armory {
   val meleeWeapons = new {
     val dagger = Weapon("Dagger", 4)
     val broadsword = Weapon("Broadsword", 7)
-    val greataxe = Weapon("Greataxe", 10)
+    val greatAxe = Weapon("Great axe", 10)
+    val heavyMaul = Weapon("Heavy maul", 12)
   }
   val throwingWeapons = new {
     val hatchet = Weapon("Hatchet", 7)

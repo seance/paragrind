@@ -90,10 +90,10 @@ class Die(rng: SecureRandom, sides: Int) {
     mutable.Buffer.fill(2)(apply(modifiers)).minBy(_.natural).copy(mode=Disadvantage)
   }
 
-  def maybeAdvantage(isAdvantage: Boolean, modifiers: Int = 0): Roll =
+  def guardAdvantage(isAdvantage: Boolean, modifiers: Int = 0): Roll =
     if (isAdvantage) advantage(modifiers) else apply(modifiers)
 
-  def maybeDisadvantage(isDisadvantage: Boolean, modifiers: Int = 0): Roll =
+  def guardDisadvantage(isDisadvantage: Boolean, modifiers: Int = 0): Roll =
     if (isDisadvantage) disadvantage(modifiers) else apply(modifiers)
 }
 

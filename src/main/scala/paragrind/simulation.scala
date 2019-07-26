@@ -1,8 +1,8 @@
-package pb2
+package paragrind
 
-import pb2.domain._
-import pb2.context._
-import pb2.rules._
+import paragrind.domain._
+import paragrind.context._
+import paragrind.rules._
 import cats._
 import cats.implicits._
 import scala.collection.parallel.CollectionConverters._

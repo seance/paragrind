@@ -1,7 +1,7 @@
-package pb2.context
+package paragrind.context
 
-import pb2.domain._
-import pb2.control._
+import paragrind.domain._
+import paragrind.control._
 
 case class BattleState(
   round: Int,

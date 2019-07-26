@@ -1,9 +1,9 @@
-package pb2
+package paragrind
 
-import pb2.domain._
-import pb2.context._
-import pb2.control._
-import pb2.data._
+import paragrind.domain._
+import paragrind.context._
+import paragrind.control._
+import paragrind.data._
 
 object Main extends App {
   import Armory.meleeWeapons._

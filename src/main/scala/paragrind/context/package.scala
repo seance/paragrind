@@ -1,4 +1,4 @@
-package pb2
+package paragrind
 
 import cats._
 import cats.mtl._

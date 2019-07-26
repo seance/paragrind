@@ -1,7 +1,7 @@
-package pb2.data
+package paragrind.data
 
-import pb2.domain._
-import pb2.control._
+import paragrind.domain._
+import paragrind.control._
 
 object Battlefields {
   def ranks(count: Int): Battlefield = Battlefield(

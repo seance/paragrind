@@ -1,8 +1,8 @@
-package pb2.control
+package paragrind.control
 
-import pb2.domain._
-import pb2.context._
-import pb2.rules._
+import paragrind.domain._
+import paragrind.context._
+import paragrind.rules._
 import cats.implicits._
 
 case class Npc(

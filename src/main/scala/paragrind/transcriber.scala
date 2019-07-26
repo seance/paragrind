@@ -1,7 +1,7 @@
-package pb2
+package paragrind
 
-import pb2.context._
-import pb2.control._
+import paragrind.context._
+import paragrind.control._
 
 object Transcriber {
 

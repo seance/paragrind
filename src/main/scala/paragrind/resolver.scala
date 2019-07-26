@@ -1,8 +1,8 @@
-package pb2
+package paragrind
 
-import pb2.context._
-import pb2.control._
-import pb2.rules._
+import paragrind.context._
+import paragrind.control._
+import paragrind.rules._
 import cats._
 import cats.implicits._
 

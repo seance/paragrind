@@ -1,4 +1,4 @@
-name := "pb2"
+name := "paragrind"
 
 version := "0.1"
 

@@ -1,4 +1,4 @@
-package pb2.domain
+package paragrind.domain
 
 import java.security.SecureRandom
 import collection.mutable

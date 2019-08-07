@@ -25,8 +25,8 @@ class Rules[F[_]: Functor]()(
     targetState: NpcState,
   ): F[NpcState] = {
 
-    val attacker = ranged.source.character
-    val defender = ranged.target.character
+    val attacker = sourceState.transform(ranged.source.character)
+    val defender = targetState.transform(ranged.target.character)
 
     val attackModifiers =
       if (ranged.isMarksman) attacker.skills.marksman
@@ -64,7 +64,7 @@ class Rules[F[_]: Functor]()(
       -defender.gear.shield.map(_.shieldValue).getOrElse(0),
     ).sum)
 
-    val hitLocation = getHitLocation()
+    val hitLocation = randomHitLocation()
     val pain = math.ceil(penetrated.toDouble / defender.stats.fortitude.toDouble).toInt
     val wounds = getWounds(penetrated, hitLocation, defender)
 
@@ -84,10 +84,11 @@ class Rules[F[_]: Functor]()(
 
     def attackRolls(group: Set[Npc]) = group.map { n =>
       val state = npcStates(n)
+      val character = state.transform(n.character)
       n -> (if (isAbleToSkirmish(state)) {
-        d20.guardDisadvantage(isMeleeDisadvantage(state), n.character.skills.melee)
+        d20.guardDisadvantage(isMeleeDisadvantage(state), character.skills.melee)
       } else {
-        d20.guardDisadvantage(isEvasionDisadvantage(state), n.character.skills.evasion)
+        d20.guardDisadvantage(isEvasionDisadvantage(state), character.skills.evasion)
       })
     }.toMap
 
@@ -116,8 +117,10 @@ class Rules[F[_]: Functor]()(
       return tell(List(missLog)) as PhaseResolution()
     }
 
-    val attacker = attackerNpc.character
-    val defender = defenderNpc.character
+    val attackerState = npcStates(attackerNpc)
+    val defenderState = npcStates(defenderNpc)
+    val attacker = attackerState.transform(attackerNpc.character)
+    val defender = defenderState.transform(defenderNpc.character)
     val weapon = attacker.gear.weaponMelee
 
     val multiplier = getDamageMultiplier(attackRoll, defenseRoll)
@@ -133,7 +136,7 @@ class Rules[F[_]: Functor]()(
       -defender.gear.shield.map(_.shieldValue).getOrElse(0),
     ).sum)
 
-    val hitLocation = getHitLocation()
+    val hitLocation = randomHitLocation()
     val pain = math.ceil(penetrated.toDouble / defender.stats.fortitude.toDouble).toInt
     val wounds = getWounds(penetrated, hitLocation, defender)
 
@@ -143,6 +146,34 @@ class Rules[F[_]: Functor]()(
     )
 
     tell(List(hitLog)) as PhaseResolution(Map(defenderNpc -> NpcState(pain, wounds)))
+  }
+
+  def resolveCast(
+    action: CastAction,
+    battle: Battle,
+    state: BattleState,
+  ): F[PhaseResolution] = {
+    val sourceState = state.npcStates(action.source)
+    val sourceSkills = action.source.character.skills
+    val castModifiers = action.cast.nature match {
+      case Arcane => sourceSkills.arcane
+      case Divine => sourceSkills.divine
+    }
+
+    val castRoll = d20.guardDisadvantage(isCastDisadvantage(sourceState), castModifiers)
+    val source = action.source.character
+    val targets = action.targets.map(_.character)
+
+    if (castRoll.modified <= action.cast.difficulty) {
+      val failureLog = CastFailureLog(state.round, source, targets, action.cast)
+      // TODO cast failure effects
+      return tell(List(failureLog)) as PhaseResolution()
+    }
+
+    val successLog = CastSuccessLog(state.round, source, targets, action.cast)
+    val resolution = Casts.resolveEffect(action, battle, state)
+
+    tell(List(successLog)) as resolution
   }
 
   def isAbleToSkirmish(state: NpcState): Boolean = {
@@ -162,6 +193,10 @@ class Rules[F[_]: Functor]()(
     List(ArmFracture, LegFracture).exists(state.wounds.contains)
   }
 
+  def isCastDisadvantage(state: NpcState): Boolean = {
+    List(SkullFracture).exists(state.wounds.contains)
+  }
+
   def isEvasionDisadvantage(state: NpcState): Boolean = {
     List(LegFracture).exists(state.wounds.contains)
   }
@@ -178,7 +213,7 @@ class Rules[F[_]: Functor]()(
     }
   }
 
-  def getHitLocation(): HitLocation = d4().natural match {
+  def randomHitLocation(): HitLocation = d4().natural match {
     case 1 => d4().natural match {
       case 1 | 2 => Head
       case 3 | 4 => Torso

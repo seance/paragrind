@@ -1,7 +1,6 @@
 package paragrind.domain
 
 import java.security.SecureRandom
-import collection.mutable
 
 case class Character(
   name: String,
@@ -22,6 +21,8 @@ case class Skills(
   throwing: Int = 0,
   marksman: Int = 0,
   evasion: Int = 0,
+  arcane: Int = 0,
+  divine: Int = 0,
 )
 
 case class Gear(
@@ -47,12 +48,19 @@ case class Armor(
   armorValue: Int,
 )
 
-sealed trait Cast {
-  def apply(): Unit
-}
-case class NoCast() extends Cast {
-  def apply() = ()
-}
+case class Cast(
+  name: String,
+  difficulty: Int,
+  nature: CastNature,
+  effect: CastEffect,
+)
+
+sealed trait CastNature
+case object Arcane extends CastNature
+case object Divine extends CastNature
+
+sealed trait CastEffect
+case object CrucibleOfPain extends CastEffect
 
 sealed trait HitLocation
 case object Head extends HitLocation
@@ -83,11 +91,11 @@ class Die(rng: SecureRandom, sides: Int) {
   def apply(modifiers: Int = 0): Roll = Roll(Normal, sides, rng.nextInt(sides) + 1, modifiers)
 
   def advantage(modifiers: Int = 0): Roll = {
-    mutable.Buffer.fill(2)(apply(modifiers)).maxBy(_.natural).copy(mode=Advantage)
+    List.fill(2)(apply(modifiers)).maxBy(_.natural).copy(mode=Advantage)
   }
 
   def disadvantage(modifiers: Int = 0): Roll = {
-    mutable.Buffer.fill(2)(apply(modifiers)).minBy(_.natural).copy(mode=Disadvantage)
+    List.fill(2)(apply(modifiers)).minBy(_.natural).copy(mode=Disadvantage)
   }
 
   def guardAdvantage(isAdvantage: Boolean, modifiers: Int = 0): Roll =

@@ -38,6 +38,8 @@ object Simulation {
       )
     }
 
+    //Transcriber.transcribeLogs(battleResults.head.logs).foreach(println)
+
     simulationResult.copy(meanRoundsTaken = simulationResult.meanRoundsTaken / count)
   }
 

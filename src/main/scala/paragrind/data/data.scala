@@ -36,9 +36,15 @@ object Armory {
   }
 }
 
+object BookOfLore {
+  val divine = new {
+    val crucibleOfPain = Cast("Crucible of Pain", 16, Divine, CrucibleOfPain)
+  }
+}
+
 object NpcControls {
   val skirmisher = new SkirmisherControl()
   val marksman = new MarksmanControl()
   val thrower = new ThrowerControl()
-  val caster = new CasterControl()
+  def caster(casts: List[Cast]) = new CasterControl(casts)
 }

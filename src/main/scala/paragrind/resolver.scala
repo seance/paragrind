@@ -139,7 +139,11 @@ class BattleResolver[F[_]](
   }
 
   def presolveCast(cast: CastAction): F[PhaseResolution] = {
-    cancelIfIncapacitated(cast.source, ???) // TODO
+    cancelIfIncapacitated(cast.source, for {
+      battle <- ask
+      state <- get
+      resolution <- rules.resolveCast(cast, battle, state)
+    } yield resolution)
   }
 
   def resolveMoves(moves: List[MoveAction]): F[Unit] = {
@@ -228,7 +232,12 @@ class BattleResolver[F[_]](
   }
 
   def mergeNpcState(a: NpcState, b: NpcState): NpcState = {
-    NpcState(a.fatigue + b.fatigue, a.wounds ++ b.wounds)
+    NpcState(
+      b.fatigue + a.fatigue,
+      b.wounds ++ a.wounds,
+      b.action <+> a.action,
+      b.transforms ++ a.transforms,
+    )
   }
 
   def applyPhaseResolution(pr: PhaseResolution): F[Unit] = {

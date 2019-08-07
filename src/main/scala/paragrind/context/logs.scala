@@ -72,8 +72,8 @@ case object EqualRolls extends SkirmishMissReason
 case object DefensiveAttacker extends SkirmishMissReason
 
 sealed trait CastLog extends ResolutionLog
-case class CastSuccessLog(round: Int) extends CastLog
-case class CastFailureLog(round: Int) extends CastLog
+case class CastSuccessLog(round: Int, caster: Character, targets: List[Character], cast: Cast) extends CastLog
+case class CastFailureLog(round: Int, caster: Character, targets: List[Character], cast: Cast) extends CastLog
 
 case class MoveLog(
   round: Int,
